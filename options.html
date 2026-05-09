@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube PiP Master – Paramètres</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0f0f0f;
+      --surface:    #1a1a1a;
+      --surface2:   #242424;
+      --border:     rgba(255,255,255,0.08);
+      --accent:     #ff0033;
+      --accent-dim: rgba(255,0,51,0.18);
+      --text:       #f1f1f1;
+      --muted:      #aaa;
+      --radius:     12px;
+    }
+
+    body {
+      min-width: 420px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      width: 38px; height: 38px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 22px; height: 22px; }
+    .header-text h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -.2px;
+    }
+    .header-text p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .version-badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Main ── */
+    main {
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+    }
+    .card-body {
+      padding: 4px 0;
+    }
+
+    /* ── Row ── */
+    .row {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      gap: 12px;
+      transition: background .15s;
+    }
+    .row + .row { border-top: 1px solid var(--border); }
+    .row:hover  { background: var(--surface2); }
+
+    .row-icon {
+      width: 32px; height: 32px;
+      background: var(--surface2);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+    }
+    .row-text { flex: 1; }
+    .row-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .row-text span {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      display: block;
+      line-height: 1.4;
+    }
+
+    /* ── Toggle ── */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+    .toggle input:checked ~ .toggle-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+    .toggle input:checked ~ .toggle-track .toggle-thumb {
+      transform: translateX(20px);
+      background: var(--accent);
+    }
+    .toggle:focus-within .toggle-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ── Shortcut input ── */
+    .shortcut-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .key-badge {
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,.15);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      font-family: monospace;
+    }
+    .shortcut-sep { color: var(--muted); font-size: 11px; }
+
+    /* ── Capture area ── */
+    #shortcut-capture {
+      display: none;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+    }
+    #shortcut-capture.active { display: block; }
+    #shortcut-field {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--text);
+      font: 14px 'DM Sans', sans-serif;
+      padding: 10px 14px;
+      outline: none;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: .4px;
+    }
+    #shortcut-field::placeholder { color: var(--muted); }
+    #shortcut-hint {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* ── Actions ── */
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 4px;
+    }
+    .btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font: 600 13px 'DM Sans', sans-serif;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { opacity: .75; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: .85; }
+
+    /* ── Toast ── */
+    #save-toast {
+      position: fixed;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      background: #1e4a2e;
+      color: #4ade80;
+      border: 1px solid #166534;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+    }
+    #save-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .info-box strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="4" width="20" height="14" rx="2" stroke="white" stroke-width="1.8"/>
+        <rect x="11" y="10" width="8" height="5" rx="1" fill="white"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>YouTube PiP Master</h1>
+      <p>Paramètres de l'extension</p>
+    </div>
+    <span class="version-badge">v1.0.0</span>
+  </header>
+
+  <main>
+
+    <!-- Fonctionnalités -->
+    <div class="card">
+      <div class="card-header"><h2>Fonctionnalités</h2></div>
+      <div class="card-body">
+
+        <!-- Auto-PiP -->
+        <div class="row">
+          <div class="row-icon">🎬</div>
+          <div class="row-text">
+            <strong>Auto-PiP</strong>
+            <span>Bascule automatiquement en fenêtre flottante quand vous changez d'onglet</span>
+          </div>
+          <label class="toggle" aria-label="Activer Auto-PiP">
+            <input type="checkbox" id="auto-pip-toggle">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </label>
+        </div>
+
+        <!-- Raccourci -->
+        <div class="row" id="shortcut-row" style="cursor:pointer;" title="Cliquez pour changer le raccourci">
+          <div class="row-icon">⌨️</div>
+          <div class="row-text">
+            <strong>Raccourci clavier</strong>
+            <span>Activez le PiP sans toucher à la souris</span>
+          </div>
+          <div class="shortcut-display" id="shortcut-display">
+            <!-- Rempli par JS -->
+          </div>
+        </div>
+
+        <!-- Zone de capture du raccourci -->
+        <div id="shortcut-capture">
+          <input
+            id="shortcut-field"
+            type="text"
+            placeholder="Appuyez sur votre combinaison de touches…"
+            readonly
+          >
+          <p id="shortcut-hint">Ex: Alt+P · Ctrl+Shift+P · Ctrl+Q</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="info-box">
+      <strong>Comment ça marche ?</strong><br>
+      Un bouton <em>PiP</em> est injecté directement dans la barre de contrôle YouTube,
+      juste à gauche du plein-écran. Cliquez dessus ou utilisez votre raccourci
+      pour détacher la vidéo dans une fenêtre flottante.
+    </div>
+
+    <!-- Boutons -->
+    <div class="actions">
+      <button class="btn btn-ghost" id="btn-reset">Réinitialiser</button>
+      <button class="btn btn-primary" id="btn-save">Enregistrer</button>
+    </div>
+
+  </main>
+
+  <div id="save-toast">✓ Paramètres sauvegardés</div>
+
+  <script src="options.js"></script>
+</body>
+</html>

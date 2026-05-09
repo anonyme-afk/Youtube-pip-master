@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube PiP Master",
+  "version": "1.0.0",
+  "description": "Activez le mode Picture-in-Picture directement depuis le lecteur YouTube – bouton intégré, raccourci clavier & auto-PiP.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "YouTube PiP Master – Paramètres",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

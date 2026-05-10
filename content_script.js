@@ -363,28 +363,28 @@
   //  PiP CORE
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async function togglePiP() {
+  function togglePiP() {
     var video = document.querySelector('video');
     if (!video) { showToast('No video found on this page'); return; }
-    await togglePiPFor(video);
+    togglePiPFor(video);
   }
 
-  async function togglePiPFor(video) {
+  function togglePiPFor(video) {
     if (!document.pictureInPictureEnabled) {
       showToast('PiP is not supported by this browser');
       return;
     }
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        showToast('PiP disabled');
-      } else {
-        await video.requestPictureInPicture();
-        showToast('PiP enabled');
-      }
-    } catch (err) {
-      showToast('Click the video first, then try again');
-      console.warn('[PiP Master]', err.message);
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture()
+        .then(function () { showToast('PiP disabled'); })
+        .catch(function (err) { console.warn('[PiP Master] exit:', err.message); });
+    } else {
+      video.requestPictureInPicture()
+        .then(function () { showToast('PiP enabled'); })
+        .catch(function (err) {
+          showToast('Click the video first, then try again');
+          console.warn('[PiP Master] enter:', err.message);
+        });
     }
   }
 
@@ -421,16 +421,14 @@
     if (visHandler) { document.removeEventListener('visibilitychange', visHandler); visHandler = null; }
     if (!settings.autoPip) return;
 
-    visHandler = async function () {
+    visHandler = function () {
       var video = document.querySelector('video');
       if (!video || video.paused) return;
-      try {
-        if (document.hidden && !document.pictureInPictureElement) {
-          await video.requestPictureInPicture();
-        } else if (!document.hidden && document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        }
-      } catch (e) {}
+      if (document.hidden && !document.pictureInPictureElement) {
+        video.requestPictureInPicture().catch(function () {});
+      } else if (!document.hidden && document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(function () {});
+      }
     };
     document.addEventListener('visibilitychange', visHandler);
   }

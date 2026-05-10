@@ -2,7 +2,7 @@
 
 Picture-in-Picture for every website with a video, not just YouTube.
 
-[![Version](https://img.shields.io/badge/version-2.1.0-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
+[![Version](https://img.shields.io/badge/version-2.1.2-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/)
 [![Firefox](https://img.shields.io/badge/Firefox-109%2B-FF7139?style=flat-square)](https://addons.mozilla.org)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -17,19 +17,22 @@ Picture-in-Picture for every website with a video, not just YouTube.
 4. [Settings](#settings)
 5. [How It Works](#how-it-works)
 6. [Project Structure](#project-structure)
-7. [Browser Compatibility](#browser-compatibility)
-8. [Known Limitations](#known-limitations)
-9. [Contributing](#contributing)
-10. [License](#license)
+7. [Changelog](#changelog)
+8. [Browser Compatibility](#browser-compatibility)
+9. [Known Limitations](#known-limitations)
+10. [Contributing](#contributing)
+11. [License](#license)
 
 ---
 
 ## Overview
 
 PiP Master adds a Picture-in-Picture button directly into the YouTube player controls.  
-On every other website (Netflix, Twitch, Dailymotion, news sites, etc.), a floating button appears when you hover over any video element — no configuration required.
+On every other website (Netflix, Twitch, Dailymotion, news sites, etc.), a floating button
+appears when you hover over any video element — no configuration required.
 
-The extension requires no external services, collects no data, and has zero impact on page load performance.
+The extension requires no external services, collects no data, and has zero impact on page
+load performance.
 
 ---
 
@@ -40,14 +43,16 @@ The extension requires no external services, collects no data, and has zero impa
 - Native-looking button injected into the YouTube player controls bar (next to the fullscreen button)
 - Dedicated floating button for YouTube Shorts
 - Survives SPA navigation: the button stays when you switch videos without a full page reload
-- **Auto-skip ads while in PiP mode** — detects the "Skip Ad" button and clicks it automatically so you never miss a skip while the video is floating
-- **Playlist continuation** — when a video ends in PiP mode and the next one starts, PiP is re-entered automatically
+- **Auto-skip ads while in PiP mode** — detects the "Skip Ad" button and clicks it automatically
+  so you never miss a skip while the video is floating
+- **Playlist continuation** — when a video ends in PiP mode and the next one starts,
+  PiP is re-entered automatically
 
 ### All Websites
 
-- A small floating button appears in the top-right corner of any `<video>` element when you hover over it
+- A small floating button appears in the top-right corner of any `<video>` element on hover
 - Works on lazily-loaded videos (videos injected into the DOM after page load)
-- Tracks video replacements (e.g. episode auto-play on streaming sites) and re-enters PiP automatically
+- Tracks video replacements (e.g. episode auto-play on streaming sites) and re-enters PiP
 
 ### General
 
@@ -81,11 +86,13 @@ The extension icon appears in the browser toolbar. Click it to open settings.
 3. Click **Load Temporary Add-on**
 4. Select the `manifest.json` file inside the extracted folder
 
-Note: temporary add-ons are removed when Firefox closes. For a permanent installation, the extension must be submitted to [addons.mozilla.org](https://addons.mozilla.org).
+> Temporary add-ons are removed when Firefox closes. For a permanent installation,
+> submit the extension to [addons.mozilla.org](https://addons.mozilla.org).
 
 ### Updating
 
-Replace the files in your local folder with the new version, then go to `chrome://extensions/` and click the refresh icon on the PiP Master card.
+Replace the files in your local folder with the new version, then go to
+`chrome://extensions/` and click the refresh icon on the PiP Master card.
 
 ---
 
@@ -120,11 +127,12 @@ Page load
             |
             MutationObserver scans for <video> elements
             Each video gets an on-hover floating button
-            Video replacement is detected for auto-reentry
+            Video replacement is detected for auto re-entry
                     |
                     v
-          HTMLVideoElement.requestPictureInPicture()
-          (native browser Web API, no third-party code)
+          video.readyState >= 1 ?
+            yes --> requestPictureInPicture()
+            no  --> wait for "loadedmetadata" event, then retry
 ```
 
 **APIs used:**
@@ -132,8 +140,9 @@ Page load
 - `HTMLVideoElement.requestPictureInPicture()` — enters PiP mode
 - `Document.exitPictureInPicture()` — exits PiP mode
 - `Document.pictureInPictureEnabled` — browser support check
-- `MutationObserver` — watches DOM changes for SPA navigation and dynamic video injection
-- `Page Visibility API` (`document.visibilitychange`) — Auto-PiP on tab switch
+- `HTMLVideoElement.readyState` — ensures metadata is loaded before requesting PiP
+- `MutationObserver` — watches DOM for SPA navigation and dynamic video injection
+- `Page Visibility API` — Auto-PiP on tab switch
 - `chrome.storage.sync` / `browser.storage.sync` — persists user settings
 
 ---
@@ -156,27 +165,66 @@ pip-master/
 
 ---
 
+## Changelog
+
+### v2.1.2
+- Fixed: `requestPictureInPicture` crash when video metadata is not yet loaded.
+  The extension now checks `video.readyState` and waits for the `loadedmetadata`
+  event before retrying. Affected users who clicked the button immediately after
+  a page load or video switch.
+
+### v2.1.1
+- Fixed: unhandled Promise rejections caused by `async/await` inside content scripts.
+  All async operations replaced with explicit `.then().catch()` Promise chains.
+
+### v2.1.0
+- New: Auto-Skip Ads — automatically clicks the YouTube "Skip Ad" button while in PiP.
+- New: Re-enter PiP — re-enters PiP automatically on playlist advancement and autoplay.
+- New: Universal mode — floating hover button on every website with a `<video>` element.
+- New: settings page with three configurable options.
+- Changed: extension renamed to "PiP Master — YouTube & All Websites".
+- Changed: `<all_urls>` host permission to support all websites.
+
+### v2.0.0
+- New: Universal mode (initial implementation).
+- New: Firefox compatibility via `browser-compat.js` shim.
+- New: `browser_specific_settings.gecko` with `data_collection_permissions` for AMO.
+- Fixed: `insertBefore` crash when the fullscreen button was not a direct child of controls.
+
+### v1.0.0
+- Initial release.
+- YouTube player button injection.
+- YouTube Shorts floating button.
+- Keyboard shortcut (Alt+P).
+- Auto-PiP on tab switch.
+- MutationObserver for SPA navigation.
+
+---
+
 ## Browser Compatibility
 
 | Browser | Version | Status | Notes |
 |---|---|---|---|
 | Chrome | 88+ | Supported | Full feature set |
-| Edge | 88+ | Supported | Same Chromium engine |
+| Edge | 88+ | Supported | Same Chromium engine as Chrome |
 | Firefox | 109+ | Supported | Via browser-compat.js shim |
+| Opera | 74+ | Likely compatible | Chromium-based, not formally tested |
+| Brave | Any | Likely compatible | Chromium-based, not formally tested |
 | Safari | — | Not supported | Requires macOS + Xcode + paid Apple Developer account |
-| Opera | 74+ | Likely compatible | Based on Chromium, not tested |
-| Brave | Any | Likely compatible | Based on Chromium, not tested |
-
-The extension uses only standard Web Extension APIs (Manifest V3) and the native PiP Web API. No browser-specific workarounds outside of the `chrome.*` / `browser.*` shim for Firefox.
 
 ---
 
 ## Known Limitations
 
-- **Safari**: Converting to a Safari Web Extension requires macOS, Xcode, and an Apple Developer account. Out of scope for this project.
-- **DRM-protected content**: Some streaming platforms (Disney+, Amazon Prime) block PiP on DRM-protected streams at the browser level. This is a browser restriction, not an extension bug.
-- **Firefox temporary install**: The extension is removed on browser close when loaded via `about:debugging`. A permanent installation requires AMO submission.
-- **iFrame videos**: Videos embedded inside cross-origin iframes cannot be controlled due to browser security policies.
+- **Safari**: Converting to a Safari Web Extension requires macOS, Xcode, and an Apple
+  Developer account ($99/year). Out of scope for this project.
+- **DRM-protected content**: Some platforms (Disney+, Amazon Prime Video) block PiP on
+  DRM-protected streams at the browser level. This is a browser restriction, not an
+  extension bug.
+- **Cross-origin iframes**: Videos embedded inside cross-origin iframes cannot be
+  controlled due to browser security policies.
+- **Firefox temporary install**: The extension is removed on browser close when loaded
+  via `about:debugging`. A permanent installation requires AMO submission.
 
 ---
 
@@ -192,7 +240,7 @@ cd Youtube-pip-master
 # Create a branch
 git checkout -b feature/your-feature-name
 
-# Commit your changes
+# Commit
 git add .
 git commit -m "feat: describe your change"
 
@@ -200,20 +248,17 @@ git commit -m "feat: describe your change"
 git push origin feature/your-feature-name
 ```
 
-Please keep commits atomic and write clear commit messages.
-
 **Ideas for contributions:**
 - i18n / localization support
 - Configurable button position for universal mode
 - Timer display in PiP window via Media Session API
-- Edge Cases: sites with multiple simultaneous video elements
+- Support for sites with multiple simultaneous video elements
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for full text.
-
+MIT License — see [LICENSE](LICENSE) for full text.  
 Copyright (c) 2026 anonyme-afk
 
 ---

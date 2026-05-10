@@ -378,14 +378,29 @@
       document.exitPictureInPicture()
         .then(function () { showToast('PiP disabled'); })
         .catch(function (err) { console.warn('[PiP Master] exit:', err.message); });
-    } else {
-      video.requestPictureInPicture()
-        .then(function () { showToast('PiP enabled'); })
-        .catch(function (err) {
-          showToast('Click the video first, then try again');
-          console.warn('[PiP Master] enter:', err.message);
-        });
+      return;
     }
+
+    // If metadata not yet loaded, wait for it then retry
+    if (video.readyState < 1) {
+      showToast('Loading video...');
+      video.addEventListener('loadedmetadata', function onMeta() {
+        video.removeEventListener('loadedmetadata', onMeta);
+        enterPiP(video);
+      });
+      return;
+    }
+
+    enterPiP(video);
+  }
+
+  function enterPiP(video) {
+    video.requestPictureInPicture()
+      .then(function () { showToast('PiP enabled'); })
+      .catch(function (err) {
+        showToast('Click the video first, then try again');
+        console.warn('[PiP Master] enter:', err.message);
+      });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

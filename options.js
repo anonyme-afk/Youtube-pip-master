@@ -1,116 +1,86 @@
-/**
- * YouTube PiP Master — options.js
- * Gestion de la page de paramètres
- */
-
 (function () {
   'use strict';
+  var DEFAULTS = { autoPip: false, shortcut: 'alt+p', autoSkipAd: true, reenterPip: true };
 
-  const DEFAULTS = { autoPip: false, shortcut: 'alt+p' };
+  var els = {
+    autoPip:    document.getElementById('auto-pip-toggle'),
+    autoSkip:   document.getElementById('auto-skip-toggle'),
+    reenter:    document.getElementById('reenter-pip-toggle'),
+    display:    document.getElementById('shortcut-display'),
+    row:        document.getElementById('shortcut-row'),
+    capture:    document.getElementById('shortcut-capture'),
+    field:      document.getElementById('shortcut-field'),
+    save:       document.getElementById('btn-save'),
+    reset:      document.getElementById('btn-reset'),
+    toast:      document.getElementById('save-toast')
+  };
 
-  // ── Éléments DOM ──────────────────────────────────────────────────────────
-  const autoPipToggle    = document.getElementById('auto-pip-toggle');
-  const shortcutDisplay  = document.getElementById('shortcut-display');
-  const shortcutRow      = document.getElementById('shortcut-row');
-  const shortcutCapture  = document.getElementById('shortcut-capture');
-  const shortcutField    = document.getElementById('shortcut-field');
-  const btnSave          = document.getElementById('btn-save');
-  const btnReset         = document.getElementById('btn-reset');
-  const saveToast        = document.getElementById('save-toast');
+  var cur = Object.assign({}, DEFAULTS);
+  var capturing = false;
 
-  let currentSettings = { ...DEFAULTS };
-  let capturingShortcut = false;
+  api.storage.sync.get(DEFAULTS, function (data) { cur = data; render(); });
 
-  // ── Chargement initial ────────────────────────────────────────────────────
-  chrome.storage.sync.get(DEFAULTS, (data) => {
-    currentSettings = data;
-    renderSettings();
-  });
-
-  // ── Rendu ─────────────────────────────────────────────────────────────────
-  function renderSettings() {
-    autoPipToggle.checked = currentSettings.autoPip;
-    renderShortcutBadge(currentSettings.shortcut);
+  function render() {
+    els.autoPip.checked = cur.autoPip;
+    els.autoSkip.checked = cur.autoSkipAd;
+    els.reenter.checked = cur.reenterPip;
+    renderBadge(cur.shortcut);
   }
 
-  function renderShortcutBadge(shortcut) {
-    const parts = shortcut.toUpperCase().split('+');
-    shortcutDisplay.innerHTML = parts
-      .map((k, i) =>
-        `<span class="key-badge">${k}</span>${i < parts.length - 1 ? '<span class="shortcut-sep">+</span>' : ''}`
-      )
-      .join('');
+  function renderBadge(shortcut) {
+    while (els.display.firstChild) els.display.removeChild(els.display.firstChild);
+    var parts = shortcut.toUpperCase().split('+');
+    parts.forEach(function (k, i) {
+      var b = document.createElement('span');
+      b.className = 'key-badge'; b.textContent = k;
+      els.display.appendChild(b);
+      if (i < parts.length - 1) {
+        var sep = document.createElement('span');
+        sep.className = 'shortcut-sep'; sep.textContent = '+';
+        els.display.appendChild(sep);
+      }
+    });
   }
 
-  // ── Capture raccourci ─────────────────────────────────────────────────────
-  shortcutRow.addEventListener('click', () => {
-    capturingShortcut = !capturingShortcut;
-    shortcutCapture.classList.toggle('active', capturingShortcut);
-    if (capturingShortcut) {
-      shortcutField.value = '';
-      shortcutField.placeholder = 'Appuyez sur votre combinaison…';
-      shortcutField.focus();
-    }
+  els.row.addEventListener('click', function () {
+    capturing = !capturing;
+    els.capture.classList.toggle('active', capturing);
+    if (capturing) { els.field.value = ''; els.field.focus(); }
   });
 
-  shortcutField.addEventListener('keydown', (e) => {
+  els.field.addEventListener('keydown', function (e) {
     e.preventDefault();
-
-    const parts = [];
+    var parts = [];
     if (e.ctrlKey)  parts.push('ctrl');
     if (e.altKey)   parts.push('alt');
     if (e.shiftKey) parts.push('shift');
-
-    const key = e.key.toLowerCase();
-    // Ignorer les modificateurs seuls
+    var key = e.key.toLowerCase();
     if (['control','alt','shift','meta'].includes(key)) return;
-
     parts.push(key);
-
-    if (parts.length < 2) {
-      shortcutField.value = '';
-      shortcutField.placeholder = 'Ajoutez Ctrl, Alt ou Shift…';
-      return;
-    }
-
-    const shortcut = parts.join('+');
-    currentSettings.shortcut = shortcut;
-    renderShortcutBadge(shortcut);
-    shortcutField.value = shortcut.toUpperCase().replace(/\+/g, ' + ');
-
-    // Fermer après 600ms
-    setTimeout(() => {
-      capturingShortcut = false;
-      shortcutCapture.classList.remove('active');
-    }, 600);
+    if (parts.length < 2) { els.field.placeholder = 'Add Ctrl, Alt or Shift...'; return; }
+    var sc = parts.join('+');
+    cur.shortcut = sc;
+    renderBadge(sc);
+    els.field.value = sc.toUpperCase().replace(/\+/g,' + ');
+    setTimeout(function () { capturing = false; els.capture.classList.remove('active'); }, 600);
   });
 
-  // ── Auto-PiP toggle ───────────────────────────────────────────────────────
-  autoPipToggle.addEventListener('change', () => {
-    currentSettings.autoPip = autoPipToggle.checked;
+  els.autoPip.addEventListener('change',  function () { cur.autoPip    = els.autoPip.checked; });
+  els.autoSkip.addEventListener('change', function () { cur.autoSkipAd = els.autoSkip.checked; });
+  els.reenter.addEventListener('change',  function () { cur.reenterPip = els.reenter.checked; });
+
+  els.save.addEventListener('click', function () {
+    api.storage.sync.set(cur, function () { showToast('Settings saved'); });
+  });
+  els.reset.addEventListener('click', function () {
+    cur = Object.assign({}, DEFAULTS); render();
+    api.storage.sync.set(cur); showToast('Reset to defaults');
   });
 
-  // ── Sauvegarde ────────────────────────────────────────────────────────────
-  btnSave.addEventListener('click', () => {
-    chrome.storage.sync.set(currentSettings, () => {
-      showToast();
-    });
-  });
-
-  // ── Réinitialisation ──────────────────────────────────────────────────────
-  btnReset.addEventListener('click', () => {
-    currentSettings = { ...DEFAULTS };
-    renderSettings();
-    chrome.storage.sync.set(currentSettings);
-    showToast('↺ Réinitialisation effectuée');
-  });
-
-  // ── Toast ─────────────────────────────────────────────────────────────────
   function showToast(msg) {
-    saveToast.textContent = msg || '✓ Paramètres sauvegardés';
-    saveToast.classList.add('show');
-    clearTimeout(saveToast._t);
-    saveToast._t = setTimeout(() => saveToast.classList.remove('show'), 2400);
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(els.toast._t);
+    els.toast._t = setTimeout(function () { els.toast.classList.remove('show'); }, 2200);
   }
-
 })();

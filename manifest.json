@@ -1,26 +1,45 @@
 {
   "manifest_version": 3,
-  "name": "YouTube PiP Master",
-  "version": "1.0.0",
-  "description": "Activez le mode Picture-in-Picture directement depuis le lecteur YouTube – bouton intégré, raccourci clavier & auto-PiP.",
+  "name": "PiP Master — YouTube & All Websites",
+  "version": "2.1.0",
+  "description": "Picture-in-Picture on YouTube and every website with a video. Integrated button, keyboard shortcut, auto-PiP, ad skip.",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "pip-master-universal@anonyme-afk",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [],
+        "optional": []
+      }
+    }
+  },
+
   "permissions": ["storage"],
-  "host_permissions": ["*://*.youtube.com/*"],
+  "host_permissions": ["<all_urls>"],
+
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/*"],
-      "js": ["content_script.js"],
+      "matches": ["<all_urls>"],
+      "js": ["browser-compat.js", "content_script.js"],
       "run_at": "document_idle"
     }
   ],
-  "options_page": "options.html",
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+
   "action": {
-    "default_title": "YouTube PiP Master – Paramètres",
+    "default_title": "PiP Master — Settings",
     "default_icon": {
       "16":  "icons/icon16.png",
       "48":  "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
+
   "icons": {
     "16":  "icons/icon16.png",
     "48":  "icons/icon48.png",

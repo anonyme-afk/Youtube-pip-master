@@ -2,7 +2,7 @@
 
 Picture-in-Picture for every website with a video, not just YouTube.
 
-[![Version](https://img.shields.io/badge/version-2.1.2-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
+[![Version](https://img.shields.io/badge/version-2.1.3-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/)
 [![Firefox](https://img.shields.io/badge/Firefox-109%2B-FF7139?style=flat-square)](https://addons.mozilla.org)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -166,6 +166,12 @@ pip-master/
 ---
 
 ## Changelog
+
+### v2.1.3
+- Fixed: floating hover button not appearing on sites like Le Monde, news sites, and any
+  site where videos are inside positioned containers. Changed from `position: absolute`
+  (document coordinates) to `position: fixed` (viewport coordinates), which works
+  correctly regardless of scroll position or parent element positioning.
 
 ### v2.1.2
 - Fixed: `requestPictureInPicture` crash when video metadata is not yet loaded.

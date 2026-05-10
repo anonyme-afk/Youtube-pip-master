@@ -279,14 +279,15 @@
 
     var targetVideo = video;
 
+    // position: fixed uses viewport coords — works regardless of scroll or parent positioning
     function reposition() {
       var r = targetVideo.getBoundingClientRect();
-      if (r.width < 80 || r.height < 60 || r.top < 0) {
+      if (r.width < 80 || r.height < 60) {
         btn.style.opacity = '0';
         return;
       }
-      btn.style.top  = (window.scrollY + r.top  + 8) + 'px';
-      btn.style.left = (window.scrollX + r.right - 50) + 'px';
+      btn.style.top   = Math.max(8, r.top  + 8)  + 'px';
+      btn.style.left  = Math.max(8, r.right - 50) + 'px';
     }
 
     var hideTimer;
@@ -307,8 +308,8 @@
     video.addEventListener('mouseleave', hide);
     btn.addEventListener('mouseenter', show);
     btn.addEventListener('mouseleave', hide);
-    window.addEventListener('scroll',  reposition, { passive: true });
-    window.addEventListener('resize',  reposition, { passive: true });
+    window.addEventListener('scroll', reposition, { passive: true });
+    window.addEventListener('resize', reposition, { passive: true });
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -527,7 +528,7 @@
 
       /* ── Universal hover button ── */
       '.pip-hover-btn{' +
-        'position:absolute;z-index:2147483646;' +
+        'position:fixed;z-index:2147483646;' +
         'width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;' +
         'background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);' +
         'display:flex;align-items:center;justify-content:center;' +

@@ -1,5 +1,5 @@
 /**
- * PiP Master — content_script.js v2.1
+ * PiP Master — content_script.js v2.2
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * YOUTUBE MODE
@@ -14,11 +14,18 @@
  *   - MutationObserver watches for dynamically injected videos
  *   - Re-enters PiP when a video element is replaced (e.g. next episode auto-play)
  *
+ * REGION PiP  (new in v2.2)
+ *   - Keyboard shortcut (default Alt+Shift+P) starts a screen-capture session
+ *   - A fullscreen overlay lets you drag-select any region of the viewport
+ *   - The selected rectangle is cropped in real time via Canvas and streamed
+ *     into a floating PiP window — movable and resizable like any PiP window
+ *   - Press the shortcut again, close the PiP window, or press Esc to stop
+ *
  * SHARED
- *   - Configurable keyboard shortcut (default Alt+P)
+ *   - Configurable keyboard shortcuts (Alt+P for PiP, Alt+Shift+P for Region)
  *   - Auto-PiP: enters PiP automatically when the tab loses focus
  *   - Toast notifications for all state changes
- *   - Zero memory leaks: all listeners are tracked and cleaned up
+ *   - Zero memory leaks: all listeners tracked and cleaned up
  *
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -36,8 +43,17 @@
   ];
 
   // ─── State ───────────────────────────────────────────────────────────────────
-  var settings         = { autoPip: false, shortcut: 'alt+p', autoSkipAd: true, reenterPip: true };
+  var settings = {
+    autoPip: false,
+    shortcut: 'alt+p',
+    autoSkipAd: true,
+    reenterPip: true,
+    regionPip: true,
+    regionShortcut: 'alt+shift+p'
+  };
+
   var keyHandler       = null;
+  var regionKeyHandler = null;
   var visHandler       = null;
   var mainObserver     = null;
   var videoObserver    = null;
@@ -45,27 +61,36 @@
   var debounceId       = null;
   var retryInterval    = null;
   var lastUrl          = location.href;
-  var pipWasActive     = false;   // tracks if PiP was on when video ended
+  var pipWasActive     = false;
   var trackedVideos    = new WeakSet();
+
+  // ─── Region PiP state ────────────────────────────────────────────────────────
+  var regionActive    = false;
+  var regionStream    = null;
+  var regionSrcVideo  = null;
+  var regionPipVideo  = null;
+  var regionRaf       = null;
 
   // ─── Boot ────────────────────────────────────────────────────────────────────
   api.storage.sync.get(
-    { autoPip: false, shortcut: 'alt+p', autoSkipAd: true, reenterPip: true },
+    { autoPip: false, shortcut: 'alt+p', autoSkipAd: true, reenterPip: true, regionPip: true, regionShortcut: 'alt+shift+p' },
     function (data) { settings = data; bootstrap(); }
   );
 
   api.storage.onChanged.addListener(function (changes) {
-    var keys = ['autoPip', 'shortcut', 'autoSkipAd', 'reenterPip'];
+    var keys = ['autoPip', 'shortcut', 'autoSkipAd', 'reenterPip', 'regionPip', 'regionShortcut'];
     keys.forEach(function (k) {
       if (changes[k] !== undefined) settings[k] = changes[k].newValue;
     });
     setupKeyboard();
+    setupRegionKeyboard();
     setupAutoPip();
   });
 
   function bootstrap() {
     injectStyles();
     setupKeyboard();
+    setupRegionKeyboard();
     setupAutoPip();
     setupPiPStateEvents();
     if (IS_YOUTUBE) {
@@ -85,7 +110,6 @@
     startRetry();
   }
 
-  // ── Button injection with retry ───────────────────────────────────────────
   function startRetry() {
     stopRetry();
     var attempts = 0;
@@ -167,7 +191,6 @@
     return true;
   }
 
-  // ── Playlist: re-enter PiP on next video ──────────────────────────────────
   function attachVideoEndListener() {
     var video = document.querySelector('video');
     if (!video || trackedVideos.has(video)) return;
@@ -180,7 +203,6 @@
     });
   }
 
-  // ── Ad skipper ────────────────────────────────────────────────────────────
   function setupAdSkipper() {
     if (adObserver) adObserver.disconnect();
 
@@ -201,7 +223,6 @@
     adObserver.observe(document.body, { childList: true, subtree: true, attributes: true });
   }
 
-  // ── SPA observer (URL change between videos) ──────────────────────────────
   function setupYouTubeObserver() {
     if (mainObserver) mainObserver.disconnect();
 
@@ -210,14 +231,11 @@
 
       if (newUrl !== lastUrl) {
         lastUrl = newUrl;
-
-        // Remove old button
         var old = document.getElementById('pip-master-btn');
         if (old && old.parentNode) old.parentNode.removeChild(old);
 
         stopRetry();
 
-        // Re-enter PiP if it was active on the previous video (playlist)
         if (pipWasActive && settings.reenterPip) {
           pipWasActive = false;
           setTimeout(function () {
@@ -279,7 +297,6 @@
 
     var targetVideo = video;
 
-    // position: fixed uses viewport coords — works regardless of scroll or parent positioning
     function reposition() {
       var r = targetVideo.getBoundingClientRect();
       if (r.width < 80 || r.height < 60) {
@@ -317,14 +334,12 @@
       togglePiPFor(targetVideo);
     });
 
-    // Re-enter PiP when next video replaces current (autoplay, episodes)
     video.addEventListener('ended', function () {
       if (document.pictureInPictureElement === video) {
         pipWasActive = true;
       }
     });
 
-    // Visual feedback on PiP state
     video.addEventListener('enterpictureinpicture', function () {
       var inner = btn.querySelector('.pip-inner');
       if (inner) inner.setAttribute('fill', '#3ea6ff');
@@ -333,7 +348,6 @@
       var inner = btn.querySelector('.pip-inner');
       if (inner) inner.setAttribute('fill', 'white');
 
-      // If video ended in PiP and settings say to re-enter, watch for replacement
       if (pipWasActive && settings.reenterPip) {
         pipWasActive = false;
         watchForNextVideo(targetVideo, btn);
@@ -344,7 +358,6 @@
   }
 
   function watchForNextVideo(oldVideo, btn) {
-    // When the old video is replaced by a new src, try to re-enter PiP
     var watcher = new MutationObserver(function () {
       var newVideo = document.querySelector('video');
       if (newVideo && newVideo !== oldVideo && !newVideo.paused) {
@@ -355,8 +368,6 @@
       }
     });
     watcher.observe(document.body, { childList: true, subtree: true, attributes: true });
-
-    // Stop watching after 15s to avoid memory leak
     setTimeout(function () { watcher.disconnect(); }, 15000);
   }
 
@@ -382,7 +393,6 @@
       return;
     }
 
-    // If metadata not yet loaded, wait for it then retry
     if (video.readyState < 1) {
       showToast('Loading video...');
       video.addEventListener('loadedmetadata', function onMeta() {
@@ -402,6 +412,288 @@
         showToast('Click the video first, then try again');
         console.warn('[PiP Master] enter:', err.message);
       });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  REGION PiP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function activateRegionPip() {
+    if (regionActive) {
+      stopRegionPip();
+      showToast('Region PiP stopped');
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      showToast('Screen capture is not supported in this browser');
+      return;
+    }
+
+    if (!document.pictureInPictureEnabled) {
+      showToast('PiP is not supported in this browser');
+      return;
+    }
+
+    showToast('Select this tab or window when asked by your browser\u2026');
+
+    var captureOpts = { video: { frameRate: 30, cursor: 'always' }, audio: false };
+    try { captureOpts.preferCurrentTab = true; } catch (e) {}
+
+    navigator.mediaDevices.getDisplayMedia(captureOpts)
+      .then(function (stream) {
+        regionStream = stream;
+        stream.getVideoTracks()[0].addEventListener('ended', function () {
+          stopRegionPip();
+        });
+        showRegionOverlay(stream);
+      })
+      .catch(function () {
+        showToast('Screen capture cancelled');
+      });
+  }
+
+  function showRegionOverlay(stream) {
+    regionActive = true;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'pip-region-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;cursor:crosshair;';
+
+    var dimT = makeDimPanel();
+    var dimB = makeDimPanel();
+    var dimL = makeDimPanel();
+    var dimR = makeDimPanel();
+
+    var selBox = document.createElement('div');
+    selBox.style.cssText = [
+      'position:absolute;display:none;pointer-events:none;',
+      'border:2px solid #3ea6ff;box-sizing:border-box;',
+      'box-shadow:0 0 8px rgba(62,166,255,.6);'
+    ].join('');
+
+    ['tl','tr','bl','br'].forEach(function (c) {
+      var el = document.createElement('div');
+      el.style.cssText = [
+        'position:absolute;width:8px;height:8px;',
+        'background:#3ea6ff;pointer-events:none;',
+        c[0] === 't' ? 'top:-4px;' : 'bottom:-4px;',
+        c[1] === 'l' ? 'left:-4px;' : 'right:-4px;'
+      ].join('');
+      selBox.appendChild(el);
+    });
+
+    var sizeLabel = document.createElement('div');
+    sizeLabel.style.cssText = [
+      'position:absolute;bottom:calc(100% + 6px);left:0;',
+      'color:#fff;font:500 11px/1 system-ui,sans-serif;',
+      'background:rgba(0,0,0,.7);padding:3px 7px;border-radius:4px;',
+      'pointer-events:none;white-space:nowrap;'
+    ].join('');
+    selBox.appendChild(sizeLabel);
+
+    var instrLabel = document.createElement('div');
+    instrLabel.style.cssText = [
+      'position:absolute;top:50%;left:50%;',
+      'transform:translate(-50%,-50%);',
+      'color:#fff;font:600 15px/1.5 system-ui,sans-serif;',
+      'background:rgba(0,0,0,.78);padding:14px 26px;border-radius:10px;',
+      'pointer-events:none;text-align:center;white-space:nowrap;',
+      'border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px);',
+      'box-shadow:0 4px 24px rgba(0,0,0,.5);'
+    ].join('');
+    instrLabel.textContent = 'Drag to select a region \u2014 Esc to cancel';
+
+    overlay.appendChild(dimT);
+    overlay.appendChild(dimB);
+    overlay.appendChild(dimL);
+    overlay.appendChild(dimR);
+    overlay.appendChild(selBox);
+    overlay.appendChild(instrLabel);
+    document.body.appendChild(overlay);
+
+    setDimFull();
+
+    var startX, startY, isDrawing = false;
+
+    overlay.addEventListener('mousedown', onDown);
+    overlay.addEventListener('mousemove', onMove);
+    overlay.addEventListener('mouseup',   onUp);
+
+    function onDown(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      isDrawing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      selBox.style.display = 'block';
+      instrLabel.style.display = 'none';
+      redraw(e.clientX, e.clientY);
+    }
+
+    function onMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      redraw(e.clientX, e.clientY);
+    }
+
+    function onUp(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      var x = Math.min(startX, e.clientX);
+      var y = Math.min(startY, e.clientY);
+      var w = Math.abs(e.clientX - startX);
+      var h = Math.abs(e.clientY - startY);
+
+      destroyOverlay();
+
+      if (w < 20 || h < 20) {
+        showToast('Selection too small \u2014 drag a larger area');
+        stopRegionPip();
+        return;
+      }
+
+      launchRegionPip(stream, x, y, w, h);
+    }
+
+    function redraw(mx, my) {
+      var x = Math.min(startX, mx), y = Math.min(startY, my);
+      var w = Math.abs(mx - startX),  h = Math.abs(my - startY);
+
+      selBox.style.left   = x + 'px';
+      selBox.style.top    = y + 'px';
+      selBox.style.width  = w + 'px';
+      selBox.style.height = h + 'px';
+      sizeLabel.textContent = Math.round(w) + ' \u00d7 ' + Math.round(h);
+
+      dimT.style.cssText = dimBase() + 'top:0;left:0;right:0;height:' + y + 'px;';
+      dimB.style.cssText = dimBase() + 'top:' + (y + h) + 'px;left:0;right:0;bottom:0;';
+      dimL.style.cssText = dimBase() + 'top:' + y + 'px;left:0;width:' + x + 'px;height:' + h + 'px;';
+      dimR.style.cssText = dimBase() + 'top:' + y + 'px;left:' + (x + w) + 'px;right:0;height:' + h + 'px;';
+    }
+
+    function setDimFull() {
+      dimT.style.cssText = dimBase() + 'inset:0;';
+      dimB.style.display = 'none';
+      dimL.style.display = 'none';
+      dimR.style.display = 'none';
+    }
+
+    function destroyOverlay() {
+      overlay.removeEventListener('mousedown', onDown);
+      overlay.removeEventListener('mousemove', onMove);
+      overlay.removeEventListener('mouseup',   onUp);
+      document.removeEventListener('keydown', escHandler);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }
+
+    function escHandler(e) {
+      if (e.key === 'Escape') {
+        destroyOverlay();
+        stopRegionPip();
+        showToast('Region PiP cancelled');
+      }
+    }
+    document.addEventListener('keydown', escHandler);
+  }
+
+  function makeDimPanel() {
+    var d = document.createElement('div');
+    d.style.cssText = dimBase();
+    return d;
+  }
+  function dimBase() {
+    return 'position:absolute;background:rgba(0,0,0,.5);pointer-events:none;';
+  }
+
+  function launchRegionPip(stream, x, y, w, h) {
+    var track = stream.getVideoTracks()[0];
+    if (!track) { stopRegionPip(); return; }
+
+    var ts   = track.getSettings();
+    var capW = ts.width  || window.innerWidth;
+    var capH = ts.height || window.innerHeight;
+
+    var sx = capW / window.innerWidth;
+    var sy = capH / window.innerHeight;
+
+    var canvas = document.createElement('canvas');
+    canvas.width  = Math.round(w * sx);
+    canvas.height = Math.round(h * sy);
+    var ctx = canvas.getContext('2d');
+
+    regionSrcVideo = document.createElement('video');
+    regionSrcVideo.srcObject = stream;
+    regionSrcVideo.muted = true;
+    regionSrcVideo.setAttribute('playsinline', '');
+    regionSrcVideo.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
+    document.body.appendChild(regionSrcVideo);
+
+    regionSrcVideo.play().then(function () {
+      function drawLoop() {
+        if (!regionActive) return;
+        try {
+          ctx.drawImage(
+            regionSrcVideo,
+            Math.round(x * sx), Math.round(y * sy), Math.round(w * sx), Math.round(h * sy),
+            0, 0, canvas.width, canvas.height
+          );
+        } catch (e) {}
+        regionRaf = requestAnimationFrame(drawLoop);
+      }
+      drawLoop();
+
+      var outStream  = canvas.captureStream(30);
+      regionPipVideo = document.createElement('video');
+      regionPipVideo.srcObject = outStream;
+      regionPipVideo.muted = true;
+      regionPipVideo.setAttribute('playsinline', '');
+      regionPipVideo.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;';
+      document.body.appendChild(regionPipVideo);
+
+      regionPipVideo.play()
+        .then(function () { return regionPipVideo.requestPictureInPicture(); })
+        .then(function () { showToast('Region PiP active \u2014 press Alt+Shift+P or close to stop'); })
+        .catch(function (err) {
+          showToast('Could not start Region PiP \u2014 try clicking on the page first');
+          console.warn('[PiP Master] region pip:', err);
+          stopRegionPip();
+        });
+
+      regionPipVideo.addEventListener('leavepictureinpicture', function () {
+        stopRegionPip();
+      });
+    }).catch(function () {
+      stopRegionPip();
+    });
+  }
+
+  function stopRegionPip() {
+    regionActive = false;
+
+    if (regionRaf) { cancelAnimationFrame(regionRaf); regionRaf = null; }
+
+    if (regionStream) {
+      regionStream.getTracks().forEach(function (t) { t.stop(); });
+      regionStream = null;
+    }
+
+    if (regionSrcVideo) {
+      if (regionSrcVideo.parentNode) regionSrcVideo.parentNode.removeChild(regionSrcVideo);
+      regionSrcVideo = null;
+    }
+
+    if (regionPipVideo) {
+      if (document.pictureInPictureElement === regionPipVideo) {
+        document.exitPictureInPicture().catch(function () {});
+      }
+      if (regionPipVideo.parentNode) regionPipVideo.parentNode.removeChild(regionPipVideo);
+      regionPipVideo = null;
+    }
+
+    var ol = document.getElementById('pip-region-overlay');
+    if (ol && ol.parentNode) ol.parentNode.removeChild(ol);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -431,6 +723,32 @@
       }
     };
     document.addEventListener('keydown', keyHandler);
+  }
+
+  function setupRegionKeyboard() {
+    if (regionKeyHandler) { document.removeEventListener('keydown', regionKeyHandler); regionKeyHandler = null; }
+    if (!settings.regionPip) return;
+
+    var parts     = (settings.regionShortcut || 'alt+shift+p').toLowerCase().split('+');
+    var mainKey   = parts[parts.length - 1];
+    var needsAlt  = parts.indexOf('alt')   !== -1;
+    var needsShft = parts.indexOf('shift') !== -1;
+    var needsCtrl = parts.indexOf('ctrl')  !== -1;
+
+    regionKeyHandler = function (e) {
+      var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea') return;
+      if (
+        e.key.toLowerCase() === mainKey &&
+        e.altKey   === needsAlt  &&
+        e.shiftKey === needsShft &&
+        e.ctrlKey  === needsCtrl
+      ) {
+        e.preventDefault();
+        activateRegionPip();
+      }
+    };
+    document.addEventListener('keydown', regionKeyHandler);
   }
 
   function setupAutoPip() {
@@ -513,7 +831,6 @@
     var s = document.createElement('style');
     s.id = 'pip-master-styles';
     s.textContent = (
-      /* ── Toast ── */
       '#pip-toast{' +
         'position:fixed;bottom:28px;left:50%;' +
         'transform:translateX(-50%) translateY(10px);' +
@@ -525,8 +842,6 @@
         'border:1px solid rgba(255,255,255,.1);white-space:nowrap;' +
         'box-shadow:0 4px 24px rgba(0,0,0,.5);}' +
       '#pip-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}' +
-
-      /* ── Universal hover button ── */
       '.pip-hover-btn{' +
         'position:fixed;z-index:2147483646;' +
         'width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;' +

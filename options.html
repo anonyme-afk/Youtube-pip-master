@@ -15,80 +15,60 @@
       --border:  rgba(255,255,255,0.07);
       --accent:  #e00;
       --adim:    rgba(220,0,0,0.15);
+      --blue:    #3ea6ff;
+      --bdim:    rgba(62,166,255,0.15);
       --text:    #efefef;
       --muted:   #888;
       --r:       10px;
     }
-    body {
-      min-width: 440px; min-height: 100vh;
-      background: var(--bg); color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
-    }
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 18px 26px;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .logo {
-      width: 36px; height: 36px;
-      background: var(--accent); border-radius: 9px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .logo svg { width: 20px; height: 20px; }
-    .header-text h1 { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
-    .header-text p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .version { margin-left: auto; font-size: 11px; color: var(--muted);
-      background: var(--s2); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); }
-    main { padding: 22px 26px; display: flex; flex-direction: column; gap: 14px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-    .card-title { padding: 12px 16px 8px; border-bottom: 1px solid var(--border);
-      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-    .row { display: flex; align-items: center; padding: 13px 16px; gap: 12px; transition: background .12s; }
-    .row + .row { border-top: 1px solid var(--border); }
-    .row:hover  { background: var(--s2); }
-    .row-icon { width: 30px; height: 30px; background: var(--s2); border-radius: 7px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
-    .row-text { flex: 1; }
-    .row-text strong { display: block; font-size: 13px; font-weight: 500; }
-    .row-text span   { font-size: 11px; color: var(--muted); margin-top: 2px; display: block; line-height: 1.4; }
-    .toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .t-track { position: absolute; inset: 0; background: var(--s2);
-      border: 1px solid rgba(255,255,255,.1); border-radius: 999px; cursor: pointer;
-      transition: background .18s, border-color .18s; }
-    .t-thumb { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px;
-      background: var(--muted); border-radius: 50%; transition: transform .18s, background .18s; }
-    .toggle input:checked ~ .t-track { background: var(--adim); border-color: var(--accent); }
-    .toggle input:checked ~ .t-track .t-thumb { transform: translateX(20px); background: var(--accent); }
-    .shortcut-display { display: flex; align-items: center; gap: 5px; flex-shrink: 0; cursor: pointer; }
-    .key-badge { background: var(--s2); border: 1px solid rgba(255,255,255,.14);
-      border-bottom-width: 2px; border-radius: 4px; padding: 2px 8px;
-      font: 600 11px monospace; color: var(--text); }
-    .shortcut-sep { color: var(--muted); font-size: 10px; }
-    #shortcut-capture { display: none; padding: 12px 16px; border-top: 1px solid var(--border); }
-    #shortcut-capture.active { display: block; }
-    #shortcut-field { width: 100%; background: var(--s2); border: 1px solid var(--accent);
-      border-radius: 7px; color: var(--text); font: 13px 'Inter',sans-serif;
-      padding: 9px 12px; outline: none; cursor: pointer; text-align: center; }
-    #shortcut-field::placeholder { color: var(--muted); }
-    .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 5px; }
-    .info { background: var(--s2); border: 1px solid var(--border); border-radius: var(--r);
-      padding: 13px 16px; font-size: 12px; color: var(--muted); line-height: 1.6; }
-    .info strong { color: var(--text); }
-    .actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .btn { padding: 8px 18px; border-radius: 7px; font: 600 12px 'Inter',sans-serif;
-      cursor: pointer; border: none; transition: opacity .14s, transform .1s; }
-    .btn:active { transform: scale(.97); }
-    .btn-ghost { background: var(--s2); color: var(--muted); border: 1px solid var(--border); }
-    .btn-ghost:hover { opacity: .7; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { opacity: .85; }
-    #save-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(6px);
-      background: #0f2b1a; color: #4ade80; border: 1px solid #166534;
-      padding: 8px 18px; border-radius: 7px; font-size: 12px; font-weight: 500;
-      opacity: 0; transition: opacity .18s, transform .18s; pointer-events: none; }
-    #save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    body { min-width:440px;min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif; }
+    header { background:var(--surface);border-bottom:1px solid var(--border);padding:18px 26px;display:flex;align-items:center;gap:14px; }
+    .logo { width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .logo svg { width:20px;height:20px; }
+    .header-text h1 { font-size:15px;font-weight:600;letter-spacing:-.2px; }
+    .header-text p  { font-size:11px;color:var(--muted);margin-top:2px; }
+    .version { margin-left:auto;font-size:11px;color:var(--muted);background:var(--s2);padding:3px 10px;border-radius:20px;border:1px solid var(--border); }
+    main { padding:22px 26px;display:flex;flex-direction:column;gap:14px; }
+    .card { background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden; }
+    .card-title { padding:12px 16px 8px;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted); }
+    .row { display:flex;align-items:center;padding:13px 16px;gap:12px;transition:background .12s; }
+    .row + .row { border-top:1px solid var(--border); }
+    .row:hover { background:var(--s2); }
+    .row-icon { width:30px;height:30px;background:var(--s2);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px; }
+    .row-icon.blue { background:var(--bdim); }
+    .row-text { flex:1; }
+    .row-text strong { display:block;font-size:13px;font-weight:500; }
+    .row-text span   { font-size:11px;color:var(--muted);margin-top:2px;display:block;line-height:1.4; }
+    .toggle { position:relative;width:42px;height:22px;flex-shrink:0; }
+    .toggle input { opacity:0;width:0;height:0; }
+    .t-track { position:absolute;inset:0;background:var(--s2);border:1px solid rgba(255,255,255,.1);border-radius:999px;cursor:pointer;transition:background .18s,border-color .18s; }
+    .t-thumb { position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--muted);border-radius:50%;transition:transform .18s,background .18s; }
+    .toggle input:checked ~ .t-track { background:var(--adim);border-color:var(--accent); }
+    .toggle input:checked ~ .t-track .t-thumb { transform:translateX(20px);background:var(--accent); }
+    .toggle.blue input:checked ~ .t-track { background:var(--bdim);border-color:var(--blue); }
+    .toggle.blue input:checked ~ .t-track .t-thumb { transform:translateX(20px);background:var(--blue); }
+    .shortcut-display { display:flex;align-items:center;gap:5px;flex-shrink:0;cursor:pointer; }
+    .key-badge { background:var(--s2);border:1px solid rgba(255,255,255,.14);border-bottom-width:2px;border-radius:4px;padding:2px 8px;font:600 11px monospace;color:var(--text); }
+    .shortcut-sep { color:var(--muted);font-size:10px; }
+    .shortcut-capture { display:none;padding:12px 16px;border-top:1px solid var(--border); }
+    .shortcut-capture.active { display:block; }
+    .shortcut-field { width:100%;background:var(--s2);border:1px solid var(--accent);border-radius:7px;color:var(--text);font:13px 'Inter',sans-serif;padding:9px 12px;outline:none;cursor:pointer;text-align:center; }
+    .shortcut-field.blue-border { border-color:var(--blue); }
+    .shortcut-field::placeholder { color:var(--muted); }
+    .hint { font-size:11px;color:var(--muted);text-align:center;margin-top:5px; }
+    .new-badge { font-size:9px;font-weight:600;background:var(--blue);color:#000;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;letter-spacing:.3px; }
+    .info { background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;font-size:12px;color:var(--muted);line-height:1.6; }
+    .info strong { color:var(--text); }
+    .info code { background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px;color:var(--text); }
+    .actions { display:flex;gap:8px;justify-content:flex-end; }
+    .btn { padding:8px 18px;border-radius:7px;font:600 12px 'Inter',sans-serif;cursor:pointer;border:none;transition:opacity .14s,transform .1s; }
+    .btn:active { transform:scale(.97); }
+    .btn-ghost { background:var(--s2);color:var(--muted);border:1px solid var(--border); }
+    .btn-ghost:hover { opacity:.7; }
+    .btn-primary { background:var(--accent);color:#fff; }
+    .btn-primary:hover { opacity:.85; }
+    #save-toast { position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(6px);background:#0f2b1a;color:#4ade80;border:1px solid #166534;padding:8px 18px;border-radius:7px;font-size:12px;font-weight:500;opacity:0;transition:opacity .18s,transform .18s;pointer-events:none; }
+    #save-toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -101,15 +81,14 @@
     </div>
     <div class="header-text">
       <h1>PiP Master</h1>
-      <p>YouTube & All Websites — Settings</p>
+      <p>YouTube &amp; All Websites — Settings</p>
     </div>
-    <span class="version">v2.1.3</span>
+    <span class="version">v2.2.0</span>
   </header>
 
   <main>
     <div class="card">
       <div class="card-title">Behaviour</div>
-
       <div class="row">
         <div class="row-icon">&#x21BA;</div>
         <div class="row-text">
@@ -121,7 +100,6 @@
           <div class="t-track"><div class="t-thumb"></div></div>
         </label>
       </div>
-
       <div class="row">
         <div class="row-icon">&#x23ED;</div>
         <div class="row-text">
@@ -133,7 +111,6 @@
           <div class="t-track"><div class="t-thumb"></div></div>
         </label>
       </div>
-
       <div class="row">
         <div class="row-icon">&#x23ED;</div>
         <div class="row-text">
@@ -145,27 +122,56 @@
           <div class="t-track"><div class="t-thumb"></div></div>
         </label>
       </div>
-
       <div class="row" id="shortcut-row" style="cursor:pointer" title="Click to change shortcut">
         <div class="row-icon">&#x2328;</div>
         <div class="row-text">
-          <strong>Keyboard shortcut</strong>
+          <strong>PiP keyboard shortcut</strong>
           <span>Activate PiP without touching the mouse — click to change</span>
         </div>
         <div class="shortcut-display" id="shortcut-display"></div>
       </div>
+      <div id="shortcut-capture" class="shortcut-capture">
+        <input id="shortcut-field" class="shortcut-field" type="text" placeholder="Press your key combination..." readonly>
+        <p class="hint">Example: Alt+P &nbsp;&#xB7;&nbsp; Ctrl+Shift+P &nbsp;&#xB7;&nbsp; Ctrl+Q</p>
+      </div>
+    </div>
 
-      <div id="shortcut-capture">
-        <input id="shortcut-field" type="text" placeholder="Press your key combination..." readonly>
-        <p class="hint">Example: Alt+P &nbsp;·&nbsp; Ctrl+Shift+P &nbsp;·&nbsp; Ctrl+Q</p>
+    <div class="card">
+      <div class="card-title">Region PiP <span class="new-badge">NEW</span></div>
+      <div class="row">
+        <div class="row-icon blue">&#x25A3;</div>
+        <div class="row-text">
+          <strong>Enable Region PiP</strong>
+          <span>Drag to select any area of the screen and float it in a PiP window</span>
+        </div>
+        <label class="toggle blue" aria-label="Toggle Region PiP">
+          <input type="checkbox" id="region-pip-toggle">
+          <div class="t-track"><div class="t-thumb"></div></div>
+        </label>
+      </div>
+      <div class="row" id="region-shortcut-row" style="cursor:pointer" title="Click to change Region PiP shortcut">
+        <div class="row-icon blue">&#x2328;</div>
+        <div class="row-text">
+          <strong>Region PiP shortcut</strong>
+          <span>Starts the region selector — click to change</span>
+        </div>
+        <div class="shortcut-display" id="region-shortcut-display"></div>
+      </div>
+      <div id="region-shortcut-capture" class="shortcut-capture">
+        <input id="region-shortcut-field" class="shortcut-field blue-border" type="text" placeholder="Press your key combination..." readonly>
+        <p class="hint">Example: Alt+Shift+P &nbsp;&#xB7;&nbsp; Ctrl+Shift+R</p>
       </div>
     </div>
 
     <div class="info">
-      <strong>How it works</strong><br>
-      On YouTube, a PiP button is injected directly into the player controls bar.
+      <strong>How Region PiP works</strong><br>
+      Press <code>Alt+Shift+P</code> (or your custom shortcut). Your browser will ask what to share —
+      select <strong>This Tab</strong> (Chrome) or the browser window for best accuracy.
+      Drag a rectangle over any part of the page. That region streams live into a floating PiP window
+      you can move and resize freely.<br><br>
+      <strong>How standard PiP works</strong><br>
+      On YouTube, a PiP button is injected into the player controls bar.
       On any other website, a floating button appears when you hover over a video.
-      Use the keyboard shortcut or the button to detach the video into a floating window.
     </div>
 
     <div class="actions">

@@ -1,8 +1,8 @@
 # PiP Master — YouTube & All Websites
 
-Picture-in-Picture for every website with a video, not just YouTube.
+Picture-in-Picture for every website with a video, plus Region PiP to float any selected area of your screen.
 
-[![Version](https://img.shields.io/badge/version-2.1.3-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-cc0000?style=flat-square)](https://github.com/anonyme-afk/Youtube-pip-master/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/)
 [![Firefox](https://img.shields.io/badge/Firefox-109%2B-FF7139?style=flat-square)](https://addons.mozilla.org)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
@@ -13,23 +13,28 @@ Picture-in-Picture for every website with a video, not just YouTube.
 
 1. [Overview](#overview)
 2. [Features](#features)
-3. [Installation](#installation)
-4. [Settings](#settings)
-5. [How It Works](#how-it-works)
-6. [Project Structure](#project-structure)
-7. [Changelog](#changelog)
-8. [Browser Compatibility](#browser-compatibility)
-9. [Known Limitations](#known-limitations)
-10. [Contributing](#contributing)
-11. [License](#license)
+3. [Region PiP](#region-pip)
+4. [Installation](#installation)
+5. [Settings](#settings)
+6. [How It Works](#how-it-works)
+7. [Project Structure](#project-structure)
+8. [Changelog](#changelog)
+9. [Browser Compatibility](#browser-compatibility)
+10. [Known Limitations](#known-limitations)
+11. [Contributing](#contributing)
+12. [License](#license)
 
 ---
 
 ## Overview
 
-PiP Master adds a Picture-in-Picture button directly into the YouTube player controls.  
+PiP Master adds a Picture-in-Picture button directly into the YouTube player controls.
 On every other website (Netflix, Twitch, Dailymotion, news sites, etc.), a floating button
-appears when you hover over any video element — no configuration required.
+appears when you hover over any video element.
+
+**New in v2.2:** Region PiP lets you draw a selection rectangle over any part of the page
+(like a screenshot tool) and stream that region into a floating, movable PiP window — no
+video element required.
 
 The extension requires no external services, collects no data, and has zero impact on page
 load performance.
@@ -44,7 +49,6 @@ load performance.
 - Dedicated floating button for YouTube Shorts
 - Survives SPA navigation: the button stays when you switch videos without a full page reload
 - **Auto-skip ads while in PiP mode** — detects the "Skip Ad" button and clicks it automatically
-  so you never miss a skip while the video is floating
 - **Playlist continuation** — when a video ends in PiP mode and the next one starts,
   PiP is re-entered automatically
 
@@ -61,8 +65,37 @@ load performance.
 | Keyboard shortcut | Default `Alt+P`, fully configurable from the settings page |
 | Auto-PiP | When you leave a tab with a playing video, PiP activates automatically |
 | Re-enter PiP | Stays in floating mode across playlist advancement and autoplay |
+| **Region PiP** | **Drag-select any screen area and float it — `Alt+Shift+P` (new in v2.2)** |
 | Toast notifications | Discrete on-screen confirmations for every PiP state change |
 | Firefox compatible | Works on Firefox 109+ via a `chrome.*` / `browser.*` compatibility shim |
+
+---
+
+## Region PiP
+
+Region PiP lets you select any rectangular area of the current tab and float it in a
+Picture-in-Picture window — just like a screen-region screenshot tool, but live and moveable.
+
+### How to use
+
+1. Press **`Alt+Shift+P`** (or your configured shortcut) on any page.
+2. Your browser shows a screen-sharing dialog — select **"This Tab"** (Chrome) or
+   the current browser window (Firefox) for the most accurate coordinate mapping.
+3. An overlay appears. **Click and drag** to draw a rectangle over any area you want to float.
+4. Release the mouse — the selected region starts streaming in a floating PiP window.
+5. Move and resize the PiP window freely, just like any other PiP.
+6. To stop: press **`Alt+Shift+P`** again, close the PiP window, or click the browser's
+   "Stop sharing" button.
+
+> **Tip:** Share "This Tab" (not "Entire Screen" or "Window") for pixel-perfect region
+> alignment, since the coordinates are mapped relative to the viewport.
+
+### Use cases
+
+- Float a live chart, map, or dashboard while working in another tab
+- Keep a live code diff or document section visible while typing elsewhere
+- Watch a specific section of a long video (subtitles, annotations, speaker cam)
+- Monitor a live score, ticker, or any updating element on a page
 
 ---
 
@@ -98,14 +131,14 @@ Replace the files in your local folder with the new version, then go to
 
 ## Settings
 
-Click the extension icon in the browser toolbar to open the settings page.
-
 | Option | Default | Description |
 |---|---|---|
 | Auto-PiP | Off | Enters PiP automatically when you switch away from a tab with a playing video |
 | Auto-Skip Ads | On | Clicks the YouTube "Skip Ad" button automatically while in PiP mode |
 | Re-enter PiP on next video | On | Re-enters PiP when a playlist or autoplay starts the next video |
 | Keyboard shortcut | `Alt+P` | Click the shortcut display to capture a new combination |
+| **Enable Region PiP** | **On** | **Enables the drag-to-select region floating feature** |
+| **Region PiP shortcut** | **`Alt+Shift+P`** | **Click to capture a new key combination for Region PiP** |
 
 ---
 
@@ -133,6 +166,29 @@ Page load
           video.readyState >= 1 ?
             yes --> requestPictureInPicture()
             no  --> wait for "loadedmetadata" event, then retry
+
+
+Region PiP (Alt+Shift+P)
+    |
+    getDisplayMedia() --> browser share dialog
+    |
+    User selects "This Tab" / browser window
+    |
+    Full-screen selection overlay appears
+    |
+    User drag-selects a rectangle
+    |
+    getVideoTracks()[0].getSettings() --> capture resolution
+    |
+    Scale CSS viewport coords --> capture pixel coords
+    |
+    Hidden <canvas> crops the frame on every requestAnimationFrame()
+    |
+    canvas.captureStream(30) --> hidden <video>
+    |
+    video.requestPictureInPicture() --> floating window
+    |
+    Press shortcut / close window / "Stop sharing" --> stopRegionPip()
 ```
 
 **APIs used:**
@@ -141,6 +197,10 @@ Page load
 - `Document.exitPictureInPicture()` — exits PiP mode
 - `Document.pictureInPictureEnabled` — browser support check
 - `HTMLVideoElement.readyState` — ensures metadata is loaded before requesting PiP
+- `navigator.mediaDevices.getDisplayMedia()` — screen/tab capture for Region PiP
+- `HTMLCanvasElement.captureStream()` — streams the cropped canvas as a video track
+- `VideoTrack.getSettings()` — reads actual capture resolution for coordinate scaling
+- `requestAnimationFrame()` — continuous frame cropping loop for Region PiP
 - `MutationObserver` — watches DOM for SPA navigation and dynamic video injection
 - `Page Visibility API` — Auto-PiP on tab switch
 - `chrome.storage.sync` / `browser.storage.sync` — persists user settings
@@ -153,7 +213,7 @@ Page load
 pip-master/
 ├── manifest.json          Manifest V3 config — Chrome and Firefox
 ├── browser-compat.js      Shim that maps chrome.* to browser.* for Firefox
-├── content_script.js      All extension logic (injection, PiP, observers, ad skip)
+├── content_script.js      All extension logic (injection, PiP, region PiP, observers, ad skip)
 ├── options.html           Settings page UI
 ├── options.js             Settings page logic
 ├── LICENSE                MIT
@@ -167,43 +227,34 @@ pip-master/
 
 ## Changelog
 
+### v2.2.0
+- New: **Region PiP** — press `Alt+Shift+P` to activate a drag-to-select overlay on any page.
+  Draw a rectangle over any screen area; that region is cropped in real time via Canvas API
+  and streamed into a floating, movable PiP window. No video element required.
+- New: Region PiP shortcut is fully configurable from the settings page (default `Alt+Shift+P`).
+- New: Region PiP can be toggled on/off independently from the settings page.
+- New: The selection overlay shows corner handles and a live size label (`W × H`) while dragging.
+- New: Four dim panels animate around the selection to visually isolate the chosen area.
+- Changed: version bumped to 2.2.0; settings page updated with a dedicated "Region PiP" card.
+
 ### v2.1.3
-- Fixed: floating hover button not appearing on sites like Le Monde, news sites, and any
-  site where videos are inside positioned containers. Changed from `position: absolute`
-  (document coordinates) to `position: fixed` (viewport coordinates), which works
-  correctly regardless of scroll position or parent element positioning.
+- Fixed: floating hover button not appearing on sites like Le Monde and any site where videos
+  are inside positioned containers. Changed from `position: absolute` to `position: fixed`.
 
 ### v2.1.2
 - Fixed: `requestPictureInPicture` crash when video metadata is not yet loaded.
-  The extension now checks `video.readyState` and waits for the `loadedmetadata`
-  event before retrying. Affected users who clicked the button immediately after
-  a page load or video switch.
 
 ### v2.1.1
-- Fixed: unhandled Promise rejections caused by `async/await` inside content scripts.
-  All async operations replaced with explicit `.then().catch()` Promise chains.
+- Fixed: unhandled Promise rejections — all async operations replaced with `.then().catch()`.
 
 ### v2.1.0
-- New: Auto-Skip Ads — automatically clicks the YouTube "Skip Ad" button while in PiP.
-- New: Re-enter PiP — re-enters PiP automatically on playlist advancement and autoplay.
-- New: Universal mode — floating hover button on every website with a `<video>` element.
-- New: settings page with three configurable options.
-- Changed: extension renamed to "PiP Master — YouTube & All Websites".
-- Changed: `<all_urls>` host permission to support all websites.
+- New: Auto-Skip Ads, Re-enter PiP, Universal mode, settings page.
 
 ### v2.0.0
-- New: Universal mode (initial implementation).
-- New: Firefox compatibility via `browser-compat.js` shim.
-- New: `browser_specific_settings.gecko` with `data_collection_permissions` for AMO.
-- Fixed: `insertBefore` crash when the fullscreen button was not a direct child of controls.
+- New: Universal mode, Firefox compatibility, browser-compat.js shim.
 
 ### v1.0.0
-- Initial release.
-- YouTube player button injection.
-- YouTube Shorts floating button.
-- Keyboard shortcut (Alt+P).
-- Auto-PiP on tab switch.
-- MutationObserver for SPA navigation.
+- Initial release: YouTube button, Shorts button, keyboard shortcut, Auto-PiP, MutationObserver.
 
 ---
 
@@ -211,9 +262,9 @@ pip-master/
 
 | Browser | Version | Status | Notes |
 |---|---|---|---|
-| Chrome | 88+ | Supported | Full feature set |
+| Chrome | 88+ | Supported | Full feature set including Region PiP ("This Tab" share recommended) |
 | Edge | 88+ | Supported | Same Chromium engine as Chrome |
-| Firefox | 109+ | Supported | Via browser-compat.js shim |
+| Firefox | 109+ | Supported | Via browser-compat.js shim; Region PiP works (share browser window) |
 | Opera | 74+ | Likely compatible | Chromium-based, not formally tested |
 | Brave | Any | Likely compatible | Chromium-based, not formally tested |
 | Safari | — | Not supported | Requires macOS + Xcode + paid Apple Developer account |
@@ -222,35 +273,28 @@ pip-master/
 
 ## Known Limitations
 
-- **Safari**: Converting to a Safari Web Extension requires macOS, Xcode, and an Apple
-  Developer account ($99/year). Out of scope for this project.
-- **DRM-protected content**: Some platforms (Disney+, Amazon Prime Video) block PiP on
-  DRM-protected streams at the browser level. This is a browser restriction, not an
-  extension bug.
-- **Cross-origin iframes**: Videos embedded inside cross-origin iframes cannot be
-  controlled due to browser security policies.
-- **Firefox temporary install**: The extension is removed on browser close when loaded
-  via `about:debugging`. A permanent installation requires AMO submission.
+- **Safari**: Out of scope — requires macOS, Xcode, and an Apple Developer account ($99/year).
+- **DRM-protected content**: Disney+, Amazon Prime Video and similar platforms block PiP at
+  the browser level. This is a browser restriction, not an extension bug.
+- **Cross-origin iframes**: Videos inside cross-origin iframes cannot be controlled due to
+  browser security policies.
+- **Firefox temporary install**: Removed on browser close when loaded via `about:debugging`.
+- **Region PiP coordinate accuracy**: Share "This Tab" (Chrome) for pixel-perfect alignment.
+  When sharing the full screen, coordinate mapping depends on the browser window position and
+  DPI scaling, which may introduce a small offset.
+- **Region PiP on Firefox**: Firefox does not support the `preferCurrentTab` hint; manually
+  choose the browser window for best results.
 
 ---
 
 ## Contributing
 
-Contributions, bug reports, and feature requests are welcome.
-
 ```bash
-# Clone
 git clone https://github.com/anonyme-afk/Youtube-pip-master.git
 cd Youtube-pip-master
-
-# Create a branch
 git checkout -b feature/your-feature-name
-
-# Commit
 git add .
 git commit -m "feat: describe your change"
-
-# Push and open a Pull Request
 git push origin feature/your-feature-name
 ```
 
@@ -259,12 +303,13 @@ git push origin feature/your-feature-name
 - Configurable button position for universal mode
 - Timer display in PiP window via Media Session API
 - Support for sites with multiple simultaneous video elements
+- Region PiP: "re-select region" button without restarting the share session
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for full text.  
+MIT License — see [LICENSE](LICENSE) for full text.
 Copyright (c) 2026 anonyme-afk
 
 ---

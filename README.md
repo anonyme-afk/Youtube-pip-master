@@ -103,21 +103,40 @@ Picture-in-Picture window — just like a screen-region screenshot tool, but liv
 
 ### Chrome and Edge
 
-1. Download the repository: **Code > Download ZIP**
-2. Extract the ZIP to a permanent folder on your computer
-3. Open `chrome://extensions/` (Chrome) or `edge://extensions/` (Edge)
-4. Enable **Developer mode** (top-right toggle)
-5. Click **Load unpacked**
-6. Select the extracted folder
+1. Go to the repository page and click **Code → Download ZIP**
+2. Extract the ZIP — this creates a folder called `Youtube-pip-master-main`
+3. **Open that folder** — inside you will find *another* folder also called
+   `Youtube-pip-master-main`. This inner folder is the one you need.
+
+   ```
+   Youtube-pip-master-main/          ← extracted from ZIP, ignore this level
+   └── Youtube-pip-master-main/      ← select THIS folder in Chrome
+       ├── manifest.json
+       ├── content_script.js
+       ├── browser-compat.js
+       ├── options.html
+       ├── options.js
+       └── icons/
+   ```
+
+   > ⚠️ **Common mistake:** selecting the outer folder gives the error
+   > *"Manifest file is missing or unreadable"*. Always go one level deeper
+   > until you can see `manifest.json` directly inside the folder.
+
+4. Open `chrome://extensions/` (Chrome) or `edge://extensions/` (Edge)
+5. Enable **Developer mode** (top-right toggle)
+6. Click **Load unpacked**
+7. Select the **inner** `Youtube-pip-master-main` folder (the one that contains `manifest.json`)
 
 The extension icon appears in the browser toolbar. Click it to open settings.
 
 ### Firefox (temporary, for testing)
 
 1. Download and extract the ZIP
-2. Open `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on**
-4. Select the `manifest.json` file inside the extracted folder
+2. Navigate into the inner folder (same rule as above — the one with `manifest.json`)
+3. Open `about:debugging#/runtime/this-firefox`
+4. Click **Load Temporary Add-on**
+5. Select the `manifest.json` file inside the inner folder
 
 > Temporary add-ons are removed when Firefox closes. For a permanent installation,
 > submit the extension to [addons.mozilla.org](https://addons.mozilla.org).
@@ -125,11 +144,13 @@ The extension icon appears in the browser toolbar. Click it to open settings.
 ### Updating
 
 Replace the files in your local folder with the new version, then go to
-`chrome://extensions/` and click the refresh icon on the PiP Master card.
+`chrome://extensions/` and click the **refresh icon** on the PiP Master card.
 
 ---
 
 ## Settings
+
+Click the extension icon in the browser toolbar to open the settings page.
 
 | Option | Default | Description |
 |---|---|---|
@@ -236,6 +257,8 @@ pip-master/
 - New: The selection overlay shows corner handles and a live size label (`W × H`) while dragging.
 - New: Four dim panels animate around the selection to visually isolate the chosen area.
 - Changed: version bumped to 2.2.0; settings page updated with a dedicated "Region PiP" card.
+- Docs: installation section now explains the ZIP nested-folder structure to avoid the
+  *"Manifest file is missing or unreadable"* error when loading the extension.
 
 ### v2.1.3
 - Fixed: floating hover button not appearing on sites like Le Monde and any site where videos
